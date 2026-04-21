@@ -32,4 +32,3 @@ public class HealthDataServiceImpl implements HealthDataService {
         // Simplified implementation for now
     }
 }
-
