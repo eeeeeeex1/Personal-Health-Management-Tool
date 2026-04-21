@@ -32,7 +32,14 @@
 - **数据可视化**：通过图表展示健康数据趋势
 - **数据存储**：安全存储用户健康数据
 
-### 2.3 系统安全模块
+### 2.3 AI健康助手模块
+
+- **智能对话**：支持用户与AI进行自然语言交互
+- **健康咨询**：提供头痛、失眠、感冒、运动、饮食、压力等健康问题咨询
+- **个性化建议**：基于用户输入提供健康建议
+- **免责声明**：所有AI回复都包含必要的免责声明
+
+### 2.4 系统安全模块
 
 - **密码加密**：使用Spring Security的密码加密机制
 - **登录日志**：记录用户登录行为，包括成功和失败的登录尝试
@@ -157,6 +164,7 @@ graph TD
 - `/`：首页，用户健康数据展示
 - `/login`：登录页面
 - `/register`：注册页面
+- `/ai-chat`：AI健康助手对话页面
 
 ### 7.2 后端路由
 
@@ -219,6 +227,47 @@ graph TD
   - 401：账号或密码错误
   - 423：账号被锁定
 
+### 8.3 AI对话接口
+
+- **请求方法**：POST
+- **URL**：/api/ai/chat
+- **请求头**：
+  - Authorization: Bearer {token} （需要JWT身份验证）
+- **请求参数**：
+  ```json
+  {
+    "message": "用户输入的健康问题",
+    "history": [
+      {
+        "role": "user",
+        "content": "历史用户消息"
+      },
+      {
+        "role": "assistant",
+        "content": "历史AI回复"
+      }
+    ]
+  }
+  ```
+  - message：用户输入的消息内容（必填，最大长度2000字符）
+  - history：对话历史记录（可选），用于多轮对话上下文管理
+- **返回格式**：
+  ```json
+  {
+    "code": 200,
+    "message": "success",
+    "data": {
+      "answer": "AI的健康建议回复",
+      "hasDisclaimer": true,
+      "disclaimer": "免责声明：本AI提供的健康建议仅供参考，不能替代专业医生的诊断和治疗。如有不适，请及时就医。"
+    }
+  }
+  ```
+- **错误码**：
+  - 400：请求参数错误
+  - 401：未登录或登录已过期
+  - 500：服务器内部错误
+
 ## 9. 服务器架构图
 
 ```mermaid
@@ -278,7 +327,110 @@ graph TD
 
 ## 11. Docker部署配置说明
 
-### 11.1 后端Dockerfile
+### 11.1 GLM模型配置
+
+#### 11.1.1 环境变量设置
+
+| 环境变量 | 说明 | 默认值 | 必需 |
+|---------|------|-------|------|
+| GLM_API_KEY | GLM模型API密钥 | 空 | 是（使用GLM模型时） |
+| GLM_API_URL | GLM模型API地址 | https://open.bigmodel.cn/api/mt/text2text/chat | 否 |
+| GLM_MODEL | GLM模型名称 | glm-4 | 否 |
+| GLM_TEMPERATURE | 生成温度参数 | 0.7 | 否 |
+| GLM_MAX_TOKENS | 最大生成token数 | 2000 | 否 |
+| GLM_TIMEOUT | API超时时间（毫秒） | 30000 | 否 |
+
+#### 11.1.2 本地开发环境配置
+
+**Windows**（PowerShell）：
+```powershell
+$env:GLM_API_KEY="your-api-key-here"
+```
+
+**macOS/Linux**（bash/zsh）：
+```bash
+export GLM_API_KEY="your-api-key-here"
+```
+
+#### 11.1.3 生产环境配置
+
+**Docker Compose**：
+在`docker-compose.yml`中添加环境变量：
+
+```yaml
+services:
+  backend:
+    build: ./health-management-system
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - GLM_API_KEY=${GLM_API_KEY}
+    depends_on:
+      - redis
+```
+
+**Kubernetes**：
+使用Secret存储API密钥：
+
+```bash
+kubectl create secret generic glm-api-secret --from-literal=api-key=your-api-key-here
+```
+
+在Deployment中引用：
+
+```yaml
+env:
+  - name: GLM_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: glm-api-secret
+        key: api-key
+```
+
+#### 11.1.4 配置验证
+
+1. **本地验证**：
+   ```bash
+   # 设置环境变量
+   export GLM_API_KEY="your-api-key-here"
+   # 启动后端服务
+   cd health-management-system && mvn spring-boot:run
+   # 测试AI接口
+   curl -X POST http://localhost:8081/api/ai/chat \
+     -H "Authorization: Bearer your-jwt-token" \
+     -H "Content-Type: application/json" \
+     -d '{"message":"我最近经常头痛，该怎么办？"}'
+   ```
+
+2. **Docker验证**：
+   ```bash
+   # 设置环境变量
+   export GLM_API_KEY="your-api-key-here"
+   # 启动容器
+   docker-compose up -d
+   # 测试AI接口
+   curl -X POST http://localhost:8081/api/ai/chat \
+     -H "Authorization: Bearer your-jwt-token" \
+     -H "Content-Type: application/json" \
+     -d '{"message":"我最近经常头痛，该怎么办？"}'
+   ```
+
+#### 11.1.5 错误处理
+
+| 错误信息 | 原因 | 解决方案 |
+|---------|------|---------|
+| Invalid GLM API key | API密钥无效 | 检查GLM_API_KEY环境变量 |
+| GLM API access forbidden | API密钥权限不足 | 检查API密钥权限设置 |
+| GLM API error | API调用失败 | 检查网络连接和API服务状态 |
+| 抱歉，AI服务暂时不可用 | 其他错误 | 查看后端日志获取详细信息 |
+
+#### 11.1.6 降级机制
+
+当GLM API不可用时，系统会自动降级到内置的健康建议回复，确保服务可用性。
+
+### 11.2 后端Dockerfile
 
 ```dockerfile
 # Build stage
