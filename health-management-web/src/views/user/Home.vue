@@ -38,6 +38,27 @@ const handleDataChange = () => {
   loadTodayData();
 };
 
+
+
+import { Brain, MessageSquare } from 'lucide-vue-next';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+// 导航到智能助手
+const navigateToAIChat = () => {
+  router.push('/ai-chat');
+};
+
+// 所有健康指标
+const allHealthMetrics = [
+  { type: 'steps', label: '步数', icon: Footprints, color: 'text-blue-400', bgColor: 'bg-blue-500' },
+  { type: 'heart_rate', label: '心率', icon: Heart, color: 'text-red-400', bgColor: 'bg-red-500' },
+  { type: 'sleep', label: '睡眠', icon: Moon, color: 'text-purple-400', bgColor: 'bg-purple-500' },
+  { type: 'weight', label: '体重', icon: Scale, color: 'text-green-400', bgColor: 'bg-green-500' },
+  { type: 'blood_pressure', label: '血压', icon: Gauge, color: 'text-yellow-400', bgColor: 'bg-yellow-500' },
+  { type: 'blood_sugar', label: '血糖', icon: Droplets, color: 'text-orange-400', bgColor: 'bg-orange-500' }
+];
 const chartData = [1200, 1500, 1100, 1800, 2000, 1600, 2400];
 const chartLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -64,27 +85,27 @@ const goToAiChat = () => {
     <!-- 健康提醒 -->
     <HealthAlerts :refresh-trigger="refreshTrigger" />
 
-    <!-- 今日统计卡片 -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      <GlassCard 
-        v-for="stat in stats" 
-        :key="stat.label" 
-        class="flex flex-col items-center justify-center p-4 md:p-6 hover:bg-white/10 transition-colors group"
-      >
-        <div :class="['w-10 h-10 rounded-lg flex items-center justify-center mb-3', stat.bgColor]">
-          <component :is="stat.icon" class="w-5 h-5 text-white" />
-        </div>
-        <div class="flex items-baseline gap-1">
-          <span class="text-2xl md:text-3xl font-bold">{{ stat.value }}</span>
-          <span class="text-sm text-gray-400">{{ stat.unit }}</span>
-        </div>
-        <span class="text-xs text-gray-400 mt-1">{{ stat.label }}</span>
-      </GlassCard>
-    </div>
+
 
     <!-- 健康指标统计 -->
     <GlassCard class="mb-6 p-6">
       <HealthStats :refresh-trigger="refreshTrigger" />
+    </GlassCard>
+
+    <!-- 智能健康助手卡片 -->
+    <GlassCard class="mb-6 p-6 hover:bg-white/10 transition-colors cursor-pointer" @click="navigateToAIChat">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
+          <Brain class="w-6 h-6 text-white" />
+        </div>
+        <div class="flex-1">
+          <h3 class="text-lg font-semibold text-white mb-1">智能健康助手</h3>
+          <p class="text-gray-400 text-sm">有健康问题？随时咨询AI助手，获取专业建议</p>
+        </div>
+        <div class="text-indigo-400">
+          <MessageSquare class="w-5 h-5" />
+        </div>
+      </div>
     </GlassCard>
 
     <!-- 主内容区 -->
