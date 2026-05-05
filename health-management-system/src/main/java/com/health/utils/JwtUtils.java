@@ -50,7 +50,11 @@ public class JwtUtils {
     }
 
     public Long extractUserId(String token) {
-        return extractClaim(token, claims -> claims.get("userId", Long.class));
+        try {
+            return extractClaim(token, claims -> claims.get("userId", Long.class));
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
