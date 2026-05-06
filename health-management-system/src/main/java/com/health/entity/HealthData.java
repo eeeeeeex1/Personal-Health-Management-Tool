@@ -21,8 +21,8 @@ public class HealthData {
     @Column(name = "type", nullable = false)
     private String type;
 
-    @Column(name = "data_value", nullable = false)
-    private Double dataValue;
+    @Column(name = "measurement_value", nullable = false)
+    private Double value;
 
     @Column(name = "unit")
     private String unit;

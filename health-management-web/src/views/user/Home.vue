@@ -51,6 +51,12 @@ const allHealthMetrics = [
   { type: 'blood_pressure', label: '血压', icon: Gauge, color: 'text-yellow-400', bgColor: 'bg-yellow-500' },
   { type: 'blood_sugar', label: '血糖', icon: Droplets, color: 'text-orange-400', bgColor: 'bg-orange-500' }
 ];
+const chartData = [1200, 1500, 1100, 1800, 2000, 1600, 2400];
+const chartLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+const goToAiChat = () => {
+  router.push('/ai-chat');
+};
 </script>
 
 <template>
