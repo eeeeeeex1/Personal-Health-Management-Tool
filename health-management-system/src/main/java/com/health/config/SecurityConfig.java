@@ -1,6 +1,7 @@
 package com.health.config;
 
 import com.health.filter.JwtAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -22,6 +23,9 @@ import java.util.Arrays;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -46,7 +50,7 @@ public class SecurityConfig {
                         .requestMatchers(new AntPathRequestMatcher("/health/**")).permitAll()
                         .anyRequest().permitAll()
                 )
-                .addFilterBefore(new JwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()));
         return http.build();
     }
@@ -59,6 +63,10 @@ public class SecurityConfig {
                 "http://127.0.0.1:5173",
                 "http://localhost:5174",
                 "http://127.0.0.1:5174",
+                "http://localhost:5175",
+                "http://127.0.0.1:5175",
+                "http://localhost:5176",
+                "http://127.0.0.1:5176",
                 "http://localhost:4173",
                 "http://127.0.0.1:4173"
         ));

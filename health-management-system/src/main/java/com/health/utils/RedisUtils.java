@@ -45,7 +45,7 @@ public class RedisUtils {
             }
             expireAt = entry.expireAt;
         }
-        MEMORY.put(key, new MemoryEntry(String.valueOf(next), expireAt == 0 ? 0 : expireAt));
+        MEMORY.put(key, new MemoryEntry(String.valueOf(next), expireAt));
         return next;
     }
 

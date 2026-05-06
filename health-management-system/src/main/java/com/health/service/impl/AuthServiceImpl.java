@@ -67,7 +67,7 @@ public class AuthServiceImpl implements AuthService {
         String registerLockKey = REGISTER_LOCK_PREFIX + request.getEmail();
         
         // 0. Anti-duplicate submission & Rate limiting
-        if (Boolean.TRUE.equals(redisUtils.get(registerLockKey) != null)) {
+        if (redisUtils.get(registerLockKey) != null) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Registration in progress, please wait");
         }
         redisUtils.set(registerLockKey, "lock", 10, TimeUnit.SECONDS);
