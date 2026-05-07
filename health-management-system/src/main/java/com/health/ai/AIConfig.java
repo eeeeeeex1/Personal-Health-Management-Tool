@@ -53,6 +53,11 @@ public class AIConfig {
     private DeepSeekConfig deepseek = new DeepSeekConfig();
 
     /**
+     * 通义千问配置
+     */
+    private QwenConfig qwen = new QwenConfig();
+
+    /**
      * 百度文心一言配置
      */
     private WenxinConfig wenxin = new WenxinConfig();
@@ -85,6 +90,14 @@ public class AIConfig {
         private String apiKey;
         private String baseUrl = "https://api.deepseek.com/v1";
         private String model = "deepseek-chat";
+        private double temperature = 0.7;
+    }
+
+    @Data
+    public static class QwenConfig {
+        private String apiKey;
+        private String baseUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1";
+        private String model = "qwen-plus";
         private double temperature = 0.7;
     }
 

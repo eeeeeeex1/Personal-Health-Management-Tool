@@ -3,6 +3,7 @@ package com.health.ai;
 import com.health.ai.impl.DeepSeekAdapter;
 import com.health.ai.impl.MockAIAdapter;
 import com.health.ai.impl.OpenAIAdapter;
+import com.health.ai.impl.QwenAdapter;
 import com.health.ai.impl.WenxinAdapter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -27,11 +28,13 @@ public class AIServiceFactory {
                            OpenAIAdapter openAIAdapter,
                            WenxinAdapter wenxinAdapter,
                            DeepSeekAdapter deepSeekAdapter,
+                           QwenAdapter qwenAdapter,
                            MockAIAdapter mockAIAdapter) {
         this.config = config;
         this.adapters.put(AIProvider.OPENAI, openAIAdapter);
         this.adapters.put(AIProvider.BAIDU_WENXIN, wenxinAdapter);
         this.adapters.put(AIProvider.DEEPSEEK, deepSeekAdapter);
+        this.adapters.put(AIProvider.QWEN, qwenAdapter);
         this.adapters.put(AIProvider.MOCK, mockAIAdapter);
         
         log.info("AI服务工厂初始化完成，已注册 {} 个服务提供商", adapters.size());

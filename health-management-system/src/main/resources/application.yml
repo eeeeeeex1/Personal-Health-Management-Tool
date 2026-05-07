@@ -30,7 +30,7 @@ jwt:
 
 # AI服务配置
 ai:
-  # 默认AI服务提供商: mock, openai, baidu_wenxin, deepseek
+  # 默认AI服务提供商: mock, openai, baidu_wenxin, deepseek, qwen
   default-provider: ${AI_DEFAULT_PROVIDER:deepseek}
   # 请求超时时间（毫秒）
   timeout: 30000
@@ -50,9 +50,16 @@ ai:
     model: gpt-3.5-turbo
     temperature: 0.7
 
+  # 通义千问配置（API兼容OpenAI格式）
+  qwen:
+    api-key: ${QWEN_API_KEY:}
+    base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    model: qwen-plus
+    temperature: 0.7
+
   # DeepSeek配置（API兼容OpenAI格式）
   deepseek:
-    api-key: ${DEEPSEEK_API_KEY:sk-d2919df6a5c24206a6fb77ad084d0a29}
+    api-key: ${DEEPSEEK_API_KEY:}
     base-url: https://api.deepseek.com/v1
     model: deepseek-chat
     temperature: 0.7
