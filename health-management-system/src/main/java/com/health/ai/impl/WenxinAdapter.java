@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * 百度千帆（文心一言）服务适配器
@@ -251,6 +252,150 @@ public class WenxinAdapter implements AIServiceAdapter {
         }
     }
     
+    @Override
+    public void generateStreamResponse(String message, String context, Consumer<String> chunkCallback) throws AIServiceException {
+        if (!isAvailable()) {
+            throw new AIServiceException(ErrorCode.INVALID_API_KEY, "文心一言API Key未配置");
+        }
+
+        long startTime = System.currentTimeMillis();
+
+        try {
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", config.getModel() != null && !config.getModel().isEmpty()
+                    ? config.getModel() : "ernie-4.0-turbo-BK");
+            requestBody.put("temperature", config.getTemperature() > 0 ? config.getTemperature() : 0.7);
+            requestBody.put("stream", true);
+
+            List<Map<String, String>> messages = new ArrayList<>();
+
+            Map<String, String> systemMessage = new HashMap<>();
+            systemMessage.put("role", "system");
+            systemMessage.put("content", "你是一个专业的健康顾问AI助手，请用简洁明了的语言回答用户的健康问题。");
+            messages.add(systemMessage);
+
+            if (context != null && !context.isEmpty()) {
+                try {
+                    List<Map<String, Object>> contextMessages = objectMapper.readValue(context, List.class);
+                    for (Map<String, Object> ctxMsg : contextMessages) {
+                        Map<String, String> msg = new HashMap<>();
+                        msg.put("role", (String) ctxMsg.get("role"));
+                        msg.put("content", (String) ctxMsg.get("content"));
+                        messages.add(msg);
+                    }
+                } catch (Exception e) {
+                    log.warn("解析上下文失败，忽略上下文: {}", e.getMessage());
+                }
+            }
+
+            Map<String, String> userMessage = new HashMap<>();
+            userMessage.put("role", "user");
+            userMessage.put("content", message);
+            messages.add(userMessage);
+
+            requestBody.put("messages", messages);
+
+            String requestJson = objectMapper.writeValueAsString(requestBody);
+            log.debug("文心一言流式请求体: {}", requestJson);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(QIANFAN_API_URL))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + config.getApiKey())
+                    .timeout(java.time.Duration.ofSeconds(120))
+                    .POST(HttpRequest.BodyPublishers.ofString(requestJson))
+                    .build();
+
+            log.info("开始调用文心一言流式API，消息长度: {} 字符", message.length());
+            HttpResponse<java.io.InputStream> response = httpClient.send(request,
+                    HttpResponse.BodyHandlers.ofInputStream());
+
+            long connectTime = System.currentTimeMillis() - startTime;
+            log.info("文心一言流式连接建立耗时: {}ms, 状态码: {}", connectTime, response.statusCode());
+
+            if (response.statusCode() != 200) {
+                String errorBody = new String(response.body().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                log.error("文心一言流式请求失败，状态码: {}, 错误信息: {}", response.statusCode(), errorBody);
+                parseResponse(buildErrorResponse(response.statusCode(), errorBody));
+                return;
+            }
+
+            try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(response.body(), java.nio.charset.StandardCharsets.UTF_8))) {
+                String line;
+                StringBuilder fullContent = new StringBuilder();
+                while ((line = reader.readLine()) != null) {
+                    if (line.isEmpty()) continue;
+
+                    if (line.startsWith("data: ")) {
+                        String jsonData = line.substring(6);
+
+                        if ("[DONE]".equals(jsonData)) {
+                            break;
+                        }
+
+                        try {
+                            Map<String, Object> chunkData = objectMapper.readValue(jsonData, Map.class);
+                            List<Map<String, Object>> choices = (List<Map<String, Object>>) chunkData.get("choices");
+                            if (choices != null && !choices.isEmpty()) {
+                                Map<String, Object> delta = (Map<String, Object>) choices.get(0).get("delta");
+                                if (delta != null && delta.containsKey("content")) {
+                                    String content = (String) delta.get("content");
+                                    if (content != null && !content.isEmpty()) {
+                                        fullContent.append(content);
+                                        chunkCallback.accept(content);
+                                    }
+                                }
+                            }
+                        } catch (Exception e) {
+                            log.warn("解析文心一言流式数据块失败: {}, 行内容: {}", e.getMessage(),
+                                    line.length() > 200 ? line.substring(0, 200) + "..." : line);
+                        }
+                    }
+                }
+                log.info("文心一言流式响应完成，总耗时: {}ms, 总内容长度: {} 字符",
+                        System.currentTimeMillis() - startTime, fullContent.length());
+            }
+
+        } catch (AIServiceException e) {
+            throw e;
+        } catch (java.net.http.HttpTimeoutException e) {
+            log.error("文心一言流式请求超时: {}", e.getMessage());
+            throw new AIServiceException(ErrorCode.TIMEOUT, e);
+        } catch (java.io.IOException e) {
+            log.error("文心一言流式请求IO异常: {}", e.getMessage());
+            throw new AIServiceException(ErrorCode.SERVICE_UNAVAILABLE, e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("文心一言流式请求被中断: {}", e.getMessage());
+            throw new AIServiceException(ErrorCode.SERVICE_UNAVAILABLE, e);
+        } catch (Exception e) {
+            log.error("文心一言流式请求异常: {}", e.getMessage(), e);
+            throw new AIServiceException(ErrorCode.UNKNOWN, e);
+        }
+    }
+
+    private HttpResponse<String> buildErrorResponse(int statusCode, String errorBody) {
+        return new HttpResponse<String>() {
+            @Override
+            public int statusCode() { return statusCode; }
+            @Override
+            public String body() { return errorBody; }
+            @Override
+            public java.net.http.HttpHeaders headers() { return java.net.http.HttpHeaders.of(Map.of(), (a, b) -> true); }
+            @Override
+            public java.net.http.HttpRequest request() { return null; }
+            @Override
+            public java.util.Optional<HttpResponse<String>> previousResponse() { return java.util.Optional.empty(); }
+            @Override
+            public java.net.URI uri() { return null; }
+            @Override
+            public java.net.http.HttpClient.Version version() { return java.net.http.HttpClient.Version.HTTP_1_1; }
+            @Override
+            public java.util.Optional<javax.net.ssl.SSLSession> sslSession() { return java.util.Optional.empty(); }
+        };
+    }
+
     @Override
     public boolean isAvailable() {
         boolean available = config.getApiKey() != null && !config.getApiKey().isEmpty();
